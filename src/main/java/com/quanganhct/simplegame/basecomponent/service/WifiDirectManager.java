@@ -3,14 +3,21 @@ package com.quanganhct.simplegame.basecomponent.service;
 import android.app.Activity;
 import android.content.Context;
 import android.content.IntentFilter;
+import android.net.wifi.WpsInfo;
+import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 
 import com.quanganhct.simplegame.basecomponent.service.listeneres.AddDiscoveryServiceRequestListener;
 import com.quanganhct.simplegame.basecomponent.service.listeneres.AdvertiseServiceListener;
+import com.quanganhct.simplegame.basecomponent.service.listeneres.InitiatePeerConnectionListener;
 import com.quanganhct.simplegame.basecomponent.service.listeneres.InitiateServiceDiscoveryListener;
 
+import org.andengine.util.SocketUtils;
+
+import java.net.ServerSocket;
 import java.util.Map;
 
 /**
@@ -22,11 +29,16 @@ public class WifiDirectManager implements WifiP2pManager.ChannelListener {
     private WifiP2pManager wifiP2pManager;
     private IntentFilter intentFilter;
     private WifiP2pManager.Channel mChannel;
+
     private AddDiscoveryServiceRequestListener discoveryRequestListener;
     private AdvertiseServiceListener advertiseServiceListener;
     private InitiateServiceDiscoveryListener initiateServiceListener;
+    private InitiatePeerConnectionListener initiatePeerConnectionListener;
+
     private WifiP2pDnsSdServiceInfo info;
     private WifiP2pDnsSdServiceRequest serviceRequest;
+    private ServerSocket serverSocket;
+
 
     private WifiDirectManager() {
 
@@ -42,6 +54,10 @@ public class WifiDirectManager implements WifiP2pManager.ChannelListener {
 
     public void setInitiateServiceCallback(InitiateServiceDiscoveryListener.InitiateDiscoveryCallback callback) {
         this.initiateServiceListener.setCallback(callback);
+    }
+
+    public void setInitiatePeerConnectionCallback(InitiatePeerConnectionListener.InitiatePeerConnectionCallback callback){
+        this.initiatePeerConnectionListener.setCallback(callback);
     }
 
     public static WifiDirectManager getInstance() {
@@ -62,6 +78,7 @@ public class WifiDirectManager implements WifiP2pManager.ChannelListener {
         this.advertiseServiceListener = new AdvertiseServiceListener();
         this.discoveryRequestListener = new AddDiscoveryServiceRequestListener();
         this.initiateServiceListener = new InitiateServiceDiscoveryListener();
+        this.initiatePeerConnectionListener = new InitiatePeerConnectionListener();
     }
 
     public void startChannel(Context context) {
@@ -73,7 +90,7 @@ public class WifiDirectManager implements WifiP2pManager.ChannelListener {
         this.mChannel = null;
     }
 
-    public void startListenAndRespond(Context context, Map<String, String> records) {
+    public void startAdvertisingService(Context context, Map<String, String> records) {
         if (this.mChannel == null) {
             this.startChannel(context);
         }
@@ -81,7 +98,7 @@ public class WifiDirectManager implements WifiP2pManager.ChannelListener {
         this.wifiP2pManager.addLocalService(mChannel, info, advertiseServiceListener);
     }
 
-    public void startDiscoveryService(Context context, WifiP2pManager.DnsSdServiceResponseListener listener1, WifiP2pManager.DnsSdTxtRecordListener listener2) {
+    public void startSearchingService(Context context, WifiP2pManager.DnsSdServiceResponseListener listener1, WifiP2pManager.DnsSdTxtRecordListener listener2) {
         if (this.mChannel == null) {
             this.startChannel(context);
         }
@@ -91,15 +108,23 @@ public class WifiDirectManager implements WifiP2pManager.ChannelListener {
         this.wifiP2pManager.discoverServices(mChannel, initiateServiceListener);
     }
 
-    public void stopListenAndRespond() {
+    public void stopAdvertisingService() {
         if (mChannel != null && info != null) {
             this.wifiP2pManager.removeLocalService(mChannel, info, null);
         }
     }
 
-    public void stopDiscoveryService() {
+    public void stopSearchingService() {
         if (mChannel != null && serviceRequest != null) {
             this.wifiP2pManager.removeServiceRequest(mChannel, serviceRequest, null);
         }
+    }
+
+    public void connectToServerDevice(WifiP2pDevice server){
+        WifiP2pConfig config = new WifiP2pConfig();
+        config.deviceAddress = server.deviceAddress;
+        config.wps.setup = WpsInfo.PBC;
+        this.wifiP2pManager.connect(mChannel, config, initiatePeerConnectionListener);
+        //TODO: need to set up broadcast listener for reponse from peer
     }
 }

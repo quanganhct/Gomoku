@@ -32,11 +32,11 @@ public class TestNSDActivity extends AbstractP2PActivity implements View.OnClick
         Map<String, String> map = new HashMap<>();
         map.put("message", "HELLO");
         if (v.getId() == R.id.btn_server) {
-            this.wifiDirectManager.startListenAndRespond(this, map);
-//            this.wifiDirectManager.startDiscoveryService(this, this, this);
+            this.wifiDirectManager.startAdvertisingService(this, map);
+//            this.wifiDirectManager.startSearchingService(this, this, this);
             MLog.w("server", "click");
         } else if (v.getId() == R.id.btn_client) {
-            this.wifiDirectManager.startDiscoveryService(this, this, this);
+            this.wifiDirectManager.startSearchingService(this, this, this);
             MLog.w("client", "click");
         }
     }
